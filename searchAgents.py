@@ -60,9 +60,9 @@ class SearchAgent(Agent):
     location (1,1)
 
     Options for fn include:
-      depthFirstSearch or dfs
-      breadthFirstSearch or bfs
-
+      depthFirstSearch
+      breadthFirstSearch
+      aStarSearch
 
     Note: You should NOT change any code in SearchAgent
     """

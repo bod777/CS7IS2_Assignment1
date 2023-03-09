@@ -8,6 +8,7 @@
 from pacman import Directions
 from game_modules.game import Agent
 import api
+import numpy as np
 
 
 # Creates a grid that can be used as a map: 2D array
@@ -52,37 +53,9 @@ class Grid:
         return self.width
 
 
-class MDPAgent(Agent):
-    """
-        README:
-        To get the best performance, initial rewards are fine tuned for small grid and medium grid.
-        During the game, rewards will dynamically change based on the game state:
-            a. Food reward suppression: If a piece of food is surrounded by 2 or 3 walls, the reward of
-                this piece will be suppressed; food at a crossing will get a higher reward because it gives pacman
-                more options to move.
-            b. Terminal state reward boosting: The reward of the last piece of food will be boosted so that pacman
-                will try to get to it and finish the game as quick as possible, so that no time will be wasted.
-            c. Ghost reward radiation: In order to encourage Pacman to avoid ghost and improve win rate, negative
-                reward of ghost will be radiated to its neighbours to a certain distance. The effect of radiation
-                will decrease as distance increases. Similar things happen when ghost is scared.
-            d. Chasing ghost: When Pacman eats a capsule, the reward of ghost will be boosted to attract Pacman.
-                Pacman will calculate the distance between scaring ghost and itself, as well as their remaining
-                scaring time. If distance/time is less than a threshold, the reward (+) of scared ghost will be
-                boosted and radiated to neighbour cells. The threshold indicates the willingness of Pacman to boost
-                reward. It is also fine tuned.
-    """
-
-    # Constructor: this gets run when we first invoke pacman.py
+class PolicyMDPAgent(Agent):
     def __init__(self):
-        """
-            All maps (game map, states, reward map and utility map), parameters (reward), hyper-parameters (gamma,
-            factors, errors, breadth, etc.) and  are declared here.
-
-            Notice, here we only declare variables without assigning values to them. They will be initialized
-            and updated dynamically when the game starts running.
-        """
-
-        print("Starting up MDPAgent!")
+        print("[PolicyMDPAgent]")
 
         # Maps:
         self.map = None                               # Grid: stores symbols of each cell, for visualization
@@ -92,6 +65,7 @@ class MDPAgent(Agent):
         self.mappedStates = {}                        # a dict mapping all possible states to 4 directions
         self.reward = {}                              # a dict which stores reward of each cell
         self.utils = {}                               # a dict which stores utility of each cell
+        self.possibleActions = {'north', 'south', 'east', 'west'}
 
         # Hyper-parameters:
         self.width = 0                                # width of the game map
@@ -131,14 +105,14 @@ class MDPAgent(Agent):
     # This is what gets run in between multiple games
     def final(self, state):
         print("Looks like the game just ended!")
-
+    
     def getAction(self, state):
         # 1. Update rewards for each cell at the beginning of every round
         self.updateReward(state)
         # 2. Reset utility for each cell to 0
         self.resetUtility(state)
-        # 3. Value iteration
-        self.valueIteration(state)
+        # 3. policy iteration
+        self.policyIteration(state)
         # 4. Update pacman position, reward map and utility map only for printing and visualization
         self.updateMap(state)
 
@@ -148,39 +122,109 @@ class MDPAgent(Agent):
         if Directions.STOP in legal:
             legal.remove(Directions.STOP)
         return api.makeMove(policy, legal)
+        
+    def evaluatePolicy(self, policy):
+        """
+        Evaluate a policy given an environment and a full description of the environment's dynamics.
+        
+        Args:
+            policy: [S, A] shaped matrix representing the policy.
+            env: OpenAI env. env.P represents the transition probabilities of the environment.
+                env.P[s][a] is a list of transition tuples (prob, next_state, reward, done).
+                env.nS is a number of states in the environment. 
+                env.nA is a number of actions in the environment.
+        
+        Returns:
+            Vector of length of the number of states representing the value function.
+        """
 
-    def valueIteration(self, state):
-        """ Do value iteration for each cell until delta is less than self.error, i.e. until converge """
-
-        states = self.mappedStates      # transition model/dict
-        reward = self.reward            # reward dictionary
-        utils = self.utils              # utility dictionary
-        prevUtils = dict(utils)         # keep a record of previous utility dictionary
-
-        # each loop is one round of value iteration
+        # Start with a random (all 0) value function
+        V = np.zeros(self.grid)
+        lenNA = len(self.possibleActions)
         while True:
             delta = 0
-            # for every cell in the game map, calculate the maximum expected utility
-            # coord: utility's map coordinate
-            # utility: utility value
-            for coord, utility in prevUtils.items():
-                # A temporary utility list for 4 directions
-                tempUtils = []
-                currentGridReward = reward[coord]
-                # for each coordinate/state, there are 4 possible move directions
-                # potentialGrids: 3 potential grids that one direction can lead to,
-                # potentialGrids[0] is the main direction; potentialGrids[1] and potentialGrids[2] are left and right...
-                for _, potentialGrids in states[coord].items():
-                    tempUtils.append(currentGridReward + self.gamma * (
-                            self.actionProb * prevUtils[potentialGrids[0]] + self.otherActionProb *
-                            prevUtils[potentialGrids[1]] + self.otherActionProb * prevUtils[potentialGrids[2]]))
-                utils[coord] = max(tempUtils)
-                delta = max(delta, abs(utils[coord] - utility))
-            prevUtils = dict(utils)
+            # For each state, perform a "full backup"
+            for s in range(self.grid):
+                v = 0
+                # Look at the possible next actions
+                for a, action_prob in enumerate(policy[s]):
+                    # For each action, look at the possible next states...
+                    for  prob, next_state, reward, done in self.mappedStates[s][a]:
+                        # Calculate the expected value
+                        v += action_prob * prob * (reward + self.gamma * V[next_state])
+                # How much our value function changed (across any states)
+                delta = max(delta, np.abs(v - V[s]))
+                V[s] = v
+            # Stop evaluating once our value function change is below a threshold
             if delta < self.error:
-                # if the biggest delta is smaller than error, then break
-                self.utils = dict(utils)
                 break
+        return np.array(V)
+    
+    def one_step_lookahead(self, state):
+        """
+        Helper function to calculate the value for all action in a given state.
+        
+        Args:
+            state: The state to consider (int)
+            V: The value to use as an estimator, Vector of length env.nS
+        
+        Returns:
+            A vector of length env.nA containing the expected value of each action.
+        """
+        V = np.zeros(len(self.grid))
+        lenPA = len(self.possibleActions)
+        A = np.zeros(lenPA)
+        for a in range(lenPA):
+            for prob, next_state, reward, done in self.mappedStates[state][a]:
+                A[a] += prob * (reward + self.gamma * V[next_state])
+        return A
+
+    def policyIteration(self, state):
+        """
+        Policy Improvement Algorithm. Iteratively evaluates and improves a policy
+        until an optimal policy is found.
+            
+        Returns:
+            A tuple (policy, V). 
+            policy is the optimal policy, a matrix of shape [S, A] where each state s
+            contains a valid probability distribution over actions.
+            V is the value function for the optimal policy.
+            
+        """
+        lenPA = len(self.possibleActions)
+        states = self.mappedStates      # transition model/dict
+                
+        # Create a N x M matrix filled with random numbers between 0 and 1
+        policy = np.random.rand(len(self.grid), len(self.possibleActions))
+
+        # Normalize each row of the matrix so that the values in each row add up to 1
+        policy = policy / np.sum(policy, axis=1, keepdims=True)
+        
+        while True:
+            # Evaluate the current policy
+            V = evaluatePolicy(self, policy)
+            
+            # Will be set to false if we make any changes to the policy
+            policy_stable = True
+            
+            # For each state...
+            for s in range(self.states):
+                # The best action we would take under the current policy
+                chosen_a = np.argmax(policy[s])
+                
+                # Find the best action by one-step lookahead
+                # Ties are resolved arbitarily
+                action_values = one_step_lookahead(self, s)
+                best_a = np.argmax(action_values)
+                
+                # Greedily update the policy
+                if chosen_a != best_a:
+                    policy_stable = False
+                policy[s] = np.eye(lenPA)[best_a]
+            
+            # If the policy is stable we've found an optimal policy. Return it
+            if policy_stable:
+                return policy, V
 
     def checkLastFood(self, state):
         """ check if there is only one piece of food """
