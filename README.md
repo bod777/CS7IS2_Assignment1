@@ -38,5 +38,7 @@ python pacman.py -l bigMaze -p SearchAgent -a fn=aStarSearch,heuristic=euclidean
 ```
 ### Markov Decision Process Algorithms
 ```
+python pacman.py -l tinyMaze -p MDPAgent
 python pacman.py -l mediumMaze -p MDPAgent
+python pacman.py -l bigMaze -p MDPAgent
 ```
