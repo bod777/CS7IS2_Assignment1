@@ -21,22 +21,24 @@ For running search algorithms to solve mazes of different sizes.
 python pacman.py -l tinyMaze -p SearchAgent -a fn=breadthFirstSearch
 python pacman.py -l tinyMaze -p SearchAgent -a fn=depthFirstSearch
 python pacman.py -l tinyMaze -p SearchAgent -a fn=aStarSearch
-python pacman.py -l tinyMaze -p SearchAgent -a fn=aStarSearch,heuristic=manhattanHeuristic 
-python pacman.py -l tinyMaze -p SearchAgent -a fn=aStarSearch,heuristic=euclideanHeuristic 
+python pacman.py -l tinyMaze -p SearchAgent -a fn=aStarSearch,heuristic=manhattanHeuristic
+python pacman.py -l tinyMaze -p SearchAgent -a fn=aStarSearch,heuristic=euclideanHeuristic
 
 python pacman.py -l mediumMaze -p SearchAgent -a fn=breadthFirstSearch
 python pacman.py -l mediumMaze -p SearchAgent -a fn=depthFirstSearch
 python pacman.py -l mediumMaze -p SearchAgent -a fn=aStarSearch
-python pacman.py -l mediumMaze -p SearchAgent -a fn=aStarSearch,heuristic=manhattanHeuristic 
-python pacman.py -l mediumMaze -p SearchAgent -a fn=aStarSearch,heuristic=euclideanHeuristic 
+python pacman.py -l mediumMaze -p SearchAgent -a fn=aStarSearch,heuristic=manhattanHeuristic
+python pacman.py -l mediumMaze -p SearchAgent -a fn=aStarSearch,heuristic=euclideanHeuristic
 
 python pacman.py -l bigMaze -p SearchAgent -a fn=breadthFirstSearch
 python pacman.py -l bigMaze -p SearchAgent -a fn=depthFirstSearch
 python pacman.py -l bigMaze -p SearchAgent -a fn=aStarSearch
-python pacman.py -l bigMaze -p SearchAgent -a fn=aStarSearch,heuristic=manhattanHeuristic 
+python pacman.py -l bigMaze -p SearchAgent -a fn=aStarSearch,heuristic=manhattanHeuristic
 python pacman.py -l bigMaze -p SearchAgent -a fn=aStarSearch,heuristic=euclideanHeuristic
 ```
 ### Markov Decision Process Algorithms
 ```
+python pacman.py -l tinyMaze -p MDPAgent
 python pacman.py -l mediumMaze -p MDPAgent
+python pacman.py -l bigMaze -p MDPAgent
 ```
