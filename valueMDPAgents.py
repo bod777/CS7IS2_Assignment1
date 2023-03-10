@@ -98,7 +98,7 @@ class ValueMDPAgent(Agent):
         self.valueIteration(state)
         # 4. Update pacman position, reward map and utility map only for printing and visualization
         self.updateMap(state)
-
+        
         # 5. Choose a policy that maximize the expected utility
         policy = self.choosePolicy(state)
         legal = api.legalActions(state)

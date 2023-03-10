@@ -8,7 +8,11 @@ The base code for the pacman maze was adapted from Pacman AI project from UC Ber
 - [x] breadthFirstSearch
 - [x] aStarSearch
 - [x] MDP value iteration
-- [ ] MDP policy iteration
+- [x] MDP policy iteration
+
+## Left to do
+- [ ] Time taken
+- [ ] Number of nodes visited
 
 ## Commands
 If you want to run the basic pacman game.

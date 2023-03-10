@@ -50,18 +50,20 @@ class PolicyMDPAgent(Agent):
     # game state to access.
     def registerInitialState(self, state):
         print("Running registerInitialState for MDPAgent!")
-        # 1. Create a set of all states of the game                         -> self.grid
+        # Create a set of all states of the game                         -> self.grid
         self.makeGrid(state)
-        # 2. Initialize rewards values based on the size of the map         -> self.xxx_reward and hyper-parameters
+        # Initialize rewards values based on the size of the map         -> self.xxx_reward and hyper-parameters
         self.initializeReward(state)
-        # 3. Initialize rewards of each state (except for walls)            -> self.reward (dict)
+        # Initialize rewards of each state (except for walls)            -> self.reward (dict)
         self.updateReward(state)
-        # 4. Initialize all grids' utility to 0                             -> self.utility (dict)
+        # Initialize all grids' utility to 0                             -> self.utility (dict)
         self.resetUtility(state)
-        # 5. Map Pacman's all possible states to its 4 adjacent directions  -> self.mappedStates
+        # Map Pacman's all possible states to its 4 adjacent directions  -> self.mappedStates
         self.mapState(state)
-        # 6. Create Grid instances for printing and visualization           -> self.map/self.rewardMap/self.utilityMap
+        # Create Grid instances for printing and visualization           -> self.map/self.rewardMap/self.utilityMap
         self.makeMap(state)
+        # Create a basic policy of always go west
+        self.initializePolicy(state)  
 
     # This is what gets run in between multiple games
     def final(self, state):
@@ -71,15 +73,13 @@ class PolicyMDPAgent(Agent):
         # 1. Update rewards for each cell at the beginning of every round
         print("Update Rewards")
         self.updateReward(state)
-        # 2. Reset utility for each cell to 0
-        print("Reset Utility")
-        self.resetUtility(state)
         # 3. policy iteration
         print("Finding best policy")
         self.policyIteration(state) 
         # 4. Choose a policy that maximize the expected utility
         print("Get Policy")
         policy = self.getPolicy(state)
+        # print(policy)
         legal = api.legalActions(state)
         if Directions.STOP in legal:
             legal.remove(Directions.STOP)
@@ -88,50 +88,53 @@ class PolicyMDPAgent(Agent):
     def policyIteration(self, state):
         states = self.mappedStates      # transition model/dict
         policy = self.policy
-        
-        for s in states:
-            policy[s]=random.choice(tuple(self.possibleActions))
 
         while True:
             policyUtils=self.evaluatePolicy(state,policy)
+            # print("Evaluated Policy: {}".format(policyUtils))
             policy_stable = True
             for s in states:
                 # The best action we would take under the current policy
-                tempPolicy = np.argmax(policy[s])
+                tempPolicy = policy[s]
                 # Find the best action by one-step lookahead
                 # Ties are resolved arbitarily
-                best_policy = self.oneStepLookAhead(state, s)
-                if tempPolicy != best_policy:
+                # print("Starting one step look ahead")
+                bestPolicy = self.oneStepLookAhead(state, s, policyUtils)
+                # print("Temp Policy: {}".format(tempPolicy))
+                # print("Best Policy: {}".format(bestPolicy))
+                if tempPolicy != bestPolicy:
                     policy_stable = False
-                    policy[s]=best_policy
-                if policy_stable:
-                    self.utils=policyUtils
-                    self.policy=policy
-                    break
+                    policy[s]=bestPolicy
+            if policy_stable:
+                self.utils=policyUtils
+                self.policy=policy
+                break
 
     def evaluatePolicy(self, state, policy):
-        states = self.mappedStates      # transition model/dict
-        reward = self.reward            # reward dictionary
-        policyUtils = dict(self.utils)
+        states = self.mappedStates
+        reward = self.reward
+        policyUtils=self.utils
+
         while True:
             delta = 0
-            # For each state, perform a "full backup"
-            # Look at the possible next actions
             for state, action in policy.items():
+                # print("Evaluating State: {}".format(state))
+                # print("Evaluating Action: {}".format(action))
                 currentReward = reward[state] 
                 next_states = states[state][action]
+                # print("Next States: {}".format(next_states))
+                # print("Policy Utility: {}".format(policyUtils))
                 tempUtil = self.actionProb * (currentReward + self.gamma * (
                     self.actionProb * policyUtils[next_states[0]] + self.otherActionProb *
                     policyUtils[next_states[1]] + self.otherActionProb * policyUtils[next_states[2]]))
-                # How much our value function changed (across any states)
                 delta = max(delta, np.abs(tempUtil - policyUtils[state]))
                 policyUtils[state] = tempUtil
-                # Stop evaluating once our value function change is below a threshold
+                # print("Policy Utility for this state: {}".format(policyUtils[state]))
             if delta < self.error:
                 break
-        return np.array(policyUtils)
+        return policyUtils
 
-    def oneStepLookAhead(self, state, coord):
+    def oneStepLookAhead(self, state, coord, utils):
         # choose a direction which returns a maximum expected utility
         (x, y) = coord
         walls = api.walls(state) 
@@ -150,19 +153,27 @@ class PolicyMDPAgent(Agent):
         if west in walls:
             west = coord
 
+        # print("self.utils: {}".format(utils))
+        # print("type: {}".format(type(utils)))
+        # print("current coords: {}".format(coord))
+        # print("north coords: {}".format(north))
+        # print("south coords: {}".format(south))
+        # print("east coords: {}".format(east))
+        # print("west coords: {}".format(west))
+
         # calculate expected utility without reward, since reward is the same
-        North_EU = self.actionProb * self.utils[north] + \
-                   self.otherActionProb * self.utils[west] + \
-                   self.otherActionProb * self.utils[east]
-        South_EU = self.actionProb * self.utils[south] + \
-                   self.otherActionProb * self.utils[west] + \
-                   self.otherActionProb * self.utils[east]
-        East_EU = self.actionProb * self.utils[east] + \
-                  self.otherActionProb * self.utils[north] + \
-                  self.otherActionProb * self.utils[south]
-        West_EU = self.actionProb * self.utils[west] + \
-                  self.otherActionProb * self.utils[north] + \
-                  self.otherActionProb * self.utils[south]
+        North_EU = self.actionProb * utils[north] + \
+                   self.otherActionProb * utils[west] + \
+                   self.otherActionProb * utils[east]
+        South_EU = self.actionProb * utils[south] + \
+                   self.otherActionProb * utils[west] + \
+                   self.otherActionProb * utils[east]
+        East_EU = self.actionProb * utils[east] + \
+                  self.otherActionProb * utils[north] + \
+                  self.otherActionProb * utils[south]
+        West_EU = self.actionProb * utils[west] + \
+                  self.otherActionProb * utils[north] + \
+                  self.otherActionProb * utils[south]
 
         # get the index of max expected utility
         list = [North_EU, South_EU, East_EU, West_EU]
@@ -194,6 +205,12 @@ class PolicyMDPAgent(Agent):
             return Directions.EAST
         if policy[pacman] == "west":
             return Directions.WEST
+        
+    def initializePolicy(self, state):
+        policy = {}
+        for s in self.mappedStates:
+            policy[s] = "west"
+        self.policy = policy
 
     def initializeReward(self, state):
         """ Initialize reward for every state. Reward are fine tuned according to the size of the map """
@@ -544,6 +561,3 @@ class PolicyMDPAgent(Agent):
             self.map.setValue(walls[i][0], walls[i][1], '%')
             self.rewardMap.setValue(walls[i][0], walls[i][1], '%')
             self.utilityMap.setValue(walls[i][0], walls[i][1], '%')
-
-
-
