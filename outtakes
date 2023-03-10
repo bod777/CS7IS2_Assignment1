@@ -1,0 +1,55 @@
+## Value
+currentReward + self.gamma * (
+self.actionProb * V[next_state1] + 
+self.otherActionProb * V[next_state2] + 
+self.otherActionProb * V[next_state3])
+=
+currentReward + self.gamma(self.actionProb * V[next_state1])+
+self.gamma(self.otherActionProb * V[next_state2])+
+self.gamma(self.otherActionProb * V[next_state3])
+=
+currentReward + 
+self.actionProb * (self.actionProb * V[next_state1])+
+self.otherActionProb * (self.gamma * V[next_state2])+
+self.otherActionProb * (self.gamma * V[next_state3])
+
+prob1 * (currentReward + self.gamma * V[next_state1]) +
+prob2 * (currentReward + self.gamma * V[next_state2]) +
+prob3 * (currentReward + self.gamma * V[next_state3])
+
+
+
+# Policy
+action_prob * prob * (currentReward + self.gamma * V[next_state1]) +
+action_prob * prob * (currentReward + self.gamma * V[next_state2]) +
+action_prob * prob * (currentReward + self.gamma * V[next_state3])
+
+
+
+A[a] += prob * (reward + discount_factor * V[next_state])
+
+
+
+
+                policy_stable = True
+                for s in states:
+                    # The best action we would take under the current policy
+                    tempPolicy = np.argmax(policy[s])
+                    # Find the best action by one-step lookahead
+                    # Ties are resolved arbitarily
+                    currentReward = reward[s]
+                    next_states = states[state][action]
+                    A = currentReward + self.gamma * (
+                        self.actionProb * prevUtils[potentialGrids[0]] + self.otherActionProb *
+                        prevUtils[potentialGrids[1]] + self.otherActionProb * prevUtils[potentialGrids[2]])
+                    
+                    
+                    best_a=np.argmax(A)
+                    if tempPolicy != best_a:
+                        policy_stable = False
+                    policy[s]=np.eye(len(self.possibleActions))[best_a]
+
+                if policy_stable:
+                    self.utils=V
+                    self.policy=policy
+        

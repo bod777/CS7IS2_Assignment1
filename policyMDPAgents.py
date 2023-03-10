@@ -9,49 +9,8 @@ from pacman import Directions
 from game_modules.game import Agent
 import api
 import numpy as np
-
-
-# Creates a grid that can be used as a map: 2D array
-#
-# The map itself is implemented as a nested list, and the interface
-# allows it to be accessed by specifying x, y locations.
-#
-# This class is used for visualization and debugging purpose
-#
-# This class 'Grid' is copied from Practical 05: sample solution ---- mapAgents.py
-class Grid:
-
-    # Constructor
-    # width: number of columns
-    # height: number of rows
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
-        subgrid = []
-        for i in range(self.height):
-            row = []
-            for j in range(self.width):
-                row.append(0)
-            subgrid.append(row)
-
-        self.grid = subgrid
-
-    # Set and get the values of specific elements in the grid.
-    # Here x and y are indices.
-    def setValue(self, x, y, value):
-        self.grid[y][x] = value
-
-    def getValue(self, x, y):
-        return self.grid[y][x]
-
-    # Return width and height to support functions that manipulate the
-    # values stored in the grid.
-    def getHeight(self):
-        return self.height
-
-    def getWidth(self):
-        return self.width
-
+import random
+from grid import Grid
 
 class PolicyMDPAgent(Agent):
     def __init__(self):
@@ -66,6 +25,8 @@ class PolicyMDPAgent(Agent):
         self.reward = {}                              # a dict which stores reward of each cell
         self.utils = {}                               # a dict which stores utility of each cell
         self.possibleActions = {'north', 'south', 'east', 'west'}
+        self.policy = {}
+        
 
         # Hyper-parameters:
         self.width = 0                                # width of the game map
@@ -108,138 +69,72 @@ class PolicyMDPAgent(Agent):
     
     def getAction(self, state):
         # 1. Update rewards for each cell at the beginning of every round
+        print("Update Rewards")
         self.updateReward(state)
         # 2. Reset utility for each cell to 0
+        print("Reset Utility")
         self.resetUtility(state)
         # 3. policy iteration
-        self.policyIteration(state)
-        # 4. Update pacman position, reward map and utility map only for printing and visualization
-        self.updateMap(state)
-
-        # 5. Choose a policy that maximize the expected utility
-        policy = self.choosePolicy(state)
+        print("Finding best policy")
+        self.policyIteration(state) 
+        # 4. Choose a policy that maximize the expected utility
+        print("Get Policy")
+        policy = self.getPolicy(state)
         legal = api.legalActions(state)
         if Directions.STOP in legal:
             legal.remove(Directions.STOP)
         return api.makeMove(policy, legal)
-        
-    def evaluatePolicy(self, policy):
-        """
-        Evaluate a policy given an environment and a full description of the environment's dynamics.
-        
-        Args:
-            policy: [S, A] shaped matrix representing the policy.
-            env: OpenAI env. env.P represents the transition probabilities of the environment.
-                env.P[s][a] is a list of transition tuples (prob, next_state, reward, done).
-                env.nS is a number of states in the environment. 
-                env.nA is a number of actions in the environment.
-        
-        Returns:
-            Vector of length of the number of states representing the value function.
-        """
 
-        # Start with a random (all 0) value function
-        V = np.zeros(self.grid)
-        lenNA = len(self.possibleActions)
+    def policyIteration(self, state):
+        states = self.mappedStates      # transition model/dict
+        policy = self.policy
+        
+        for s in states:
+            policy[s]=random.choice(tuple(self.possibleActions))
+
+        while True:
+            policyUtils=self.evaluatePolicy(state,policy)
+            policy_stable = True
+            for s in states:
+                # The best action we would take under the current policy
+                tempPolicy = np.argmax(policy[s])
+                # Find the best action by one-step lookahead
+                # Ties are resolved arbitarily
+                best_policy = self.oneStepLookAhead(state, s)
+                if tempPolicy != best_policy:
+                    policy_stable = False
+                    policy[s]=best_policy
+                if policy_stable:
+                    self.utils=policyUtils
+                    self.policy=policy
+                    break
+
+    def evaluatePolicy(self, state, policy):
+        states = self.mappedStates      # transition model/dict
+        reward = self.reward            # reward dictionary
+        policyUtils = dict(self.utils)
         while True:
             delta = 0
             # For each state, perform a "full backup"
-            for s in range(self.grid):
-                v = 0
-                # Look at the possible next actions
-                for a, action_prob in enumerate(policy[s]):
-                    # For each action, look at the possible next states...
-                    for  prob, next_state, reward, done in self.mappedStates[s][a]:
-                        # Calculate the expected value
-                        v += action_prob * prob * (reward + self.gamma * V[next_state])
+            # Look at the possible next actions
+            for state, action in policy.items():
+                currentReward = reward[state] 
+                next_states = states[state][action]
+                tempUtil = self.actionProb * (currentReward + self.gamma * (
+                    self.actionProb * policyUtils[next_states[0]] + self.otherActionProb *
+                    policyUtils[next_states[1]] + self.otherActionProb * policyUtils[next_states[2]]))
                 # How much our value function changed (across any states)
-                delta = max(delta, np.abs(v - V[s]))
-                V[s] = v
-            # Stop evaluating once our value function change is below a threshold
+                delta = max(delta, np.abs(tempUtil - policyUtils[state]))
+                policyUtils[state] = tempUtil
+                # Stop evaluating once our value function change is below a threshold
             if delta < self.error:
                 break
-        return np.array(V)
-    
-    def one_step_lookahead(self, state):
-        """
-        Helper function to calculate the value for all action in a given state.
-        
-        Args:
-            state: The state to consider (int)
-            V: The value to use as an estimator, Vector of length env.nS
-        
-        Returns:
-            A vector of length env.nA containing the expected value of each action.
-        """
-        V = np.zeros(len(self.grid))
-        lenPA = len(self.possibleActions)
-        A = np.zeros(lenPA)
-        for a in range(lenPA):
-            for prob, next_state, reward, done in self.mappedStates[state][a]:
-                A[a] += prob * (reward + self.gamma * V[next_state])
-        return A
+        return np.array(policyUtils)
 
-    def policyIteration(self, state):
-        """
-        Policy Improvement Algorithm. Iteratively evaluates and improves a policy
-        until an optimal policy is found.
-            
-        Returns:
-            A tuple (policy, V). 
-            policy is the optimal policy, a matrix of shape [S, A] where each state s
-            contains a valid probability distribution over actions.
-            V is the value function for the optimal policy.
-            
-        """
-        lenPA = len(self.possibleActions)
-        states = self.mappedStates      # transition model/dict
-                
-        # Create a N x M matrix filled with random numbers between 0 and 1
-        policy = np.random.rand(len(self.grid), len(self.possibleActions))
-
-        # Normalize each row of the matrix so that the values in each row add up to 1
-        policy = policy / np.sum(policy, axis=1, keepdims=True)
-        
-        while True:
-            # Evaluate the current policy
-            V = evaluatePolicy(self, policy)
-            
-            # Will be set to false if we make any changes to the policy
-            policy_stable = True
-            
-            # For each state...
-            for s in range(self.states):
-                # The best action we would take under the current policy
-                chosen_a = np.argmax(policy[s])
-                
-                # Find the best action by one-step lookahead
-                # Ties are resolved arbitarily
-                action_values = one_step_lookahead(self, s)
-                best_a = np.argmax(action_values)
-                
-                # Greedily update the policy
-                if chosen_a != best_a:
-                    policy_stable = False
-                policy[s] = np.eye(lenPA)[best_a]
-            
-            # If the policy is stable we've found an optimal policy. Return it
-            if policy_stable:
-                return policy, V
-
-    def checkLastFood(self, state):
-        """ check if there is only one piece of food """
-
-        foods = api.food(state)
-        if len(foods) == 1:
-            return True
-        else:
-            return False
-
-    def choosePolicy(self, state):
+    def oneStepLookAhead(self, state, coord):
         # choose a direction which returns a maximum expected utility
-        pacman = api.whereAmI(state)
-        (x, y) = pacman
-        walls = api.walls(state)
+        (x, y) = coord
+        walls = api.walls(state) 
         north = (x, y+1)
         south = (x, y-1)
         east = (x+1, y)
@@ -247,13 +142,13 @@ class PolicyMDPAgent(Agent):
 
         # check if the next location is a wall, if its a wall, stop; otherwise, go
         if north in walls:
-            north = pacman
+            north = coord
         if south in walls:
-            south = pacman
+            south = coord
         if east in walls:
-            east = pacman
+            east = coord
         if west in walls:
-            west = pacman
+            west = coord
 
         # calculate expected utility without reward, since reward is the same
         North_EU = self.actionProb * self.utils[north] + \
@@ -278,12 +173,26 @@ class PolicyMDPAgent(Agent):
 
         # return direction: 0-north  1-south  2-east  3-west
         if maxIndex == 0:
-            return Directions.NORTH
+            return "north"
         if maxIndex == 1:
-            return Directions.SOUTH
+            return "south"
         if maxIndex == 2:
-            return Directions.EAST
+            return "east"
         if maxIndex == 3:
+            return "west"
+
+    def getPolicy(self, state):
+        # choose a direction which returns a maximum expected utility
+        pacman = api.whereAmI(state)
+        policy = self.policy
+        
+        if policy[pacman] == "north":
+            return Directions.NORTH
+        if policy[pacman] == "south":
+            return Directions.SOUTH
+        if policy[pacman] == "east":
+            return Directions.EAST
+        if policy[pacman] == "west":
             return Directions.WEST
 
     def initializeReward(self, state):
@@ -307,6 +216,15 @@ class PolicyMDPAgent(Agent):
             self.empty_reward = -2
             self.breadth = 5
 
+    def checkLastFood(self, state):
+        """ check if there is only one piece of food """
+
+        foods = api.food(state)
+        if len(foods) == 1:
+            return True
+        else:
+            return False
+        
     def updateReward(self, state):
         """
             Update reward for every cell that is not a wall.
