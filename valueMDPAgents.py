@@ -9,6 +9,7 @@ from pacman import Directions
 from game_modules.game import Agent
 import api
 from grid import Grid
+import time
 
 class ValueMDPAgent(Agent):
     """
@@ -39,8 +40,6 @@ class ValueMDPAgent(Agent):
             Notice, here we only declare variables without assigning values to them. They will be initialized
             and updated dynamically when the game starts running.
         """
-        print("[ValueMDPAgent]")
-
         # Maps:
         self.map = None                               # Grid: stores symbols of each cell, for visualization
         self.rewardMap = None                         # Grid: stores the reward of each state, for visualization
@@ -71,7 +70,8 @@ class ValueMDPAgent(Agent):
     # Gets run after an MDPAgent object is created and once there is
     # game state to access.
     def registerInitialState(self, state):
-        print("Running registerInitialState for MDPAgent!")
+        print("Running Value Iteration MDPAgent!")
+        startTime = time.time()
         # 1. Create a set of all states of the game                         -> self.grid
         self.makeGrid(state)
         # 2. Initialize rewards values based on the size of the map         -> self.xxx_reward and hyper-parameters
@@ -84,22 +84,15 @@ class ValueMDPAgent(Agent):
         self.mapState(state)
         # 6. Create Grid instances for printing and visualization           -> self.map/self.rewardMap/self.utilityMap
         self.makeMap(state)
+        self.valueIteration(state)
+        print('Time to find optimal path: %.5f seconds' % (time.time() - startTime))
+        print('Nodes Visited: %.0f' % (len(self.mappedStates)))
 
     # This is what gets run in between multiple games
     def final(self, state):
         print("Looks like the game just ended!")
 
     def getAction(self, state):
-        # 1. Update rewards for each cell at the beginning of every round
-        self.updateReward(state)
-        # 2. Reset utility for each cell to 0
-        self.resetUtility(state)
-        # 3. Value iteration
-        self.valueIteration(state)
-        # 4. Update pacman position, reward map and utility map only for printing and visualization
-        self.updateMap(state)
-        
-        # 5. Choose a policy that maximize the expected utility
         policy = self.choosePolicy(state)
         legal = api.legalActions(state)
         if Directions.STOP in legal:

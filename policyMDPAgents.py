@@ -11,11 +11,10 @@ import api
 import numpy as np
 import random
 from grid import Grid
+import time
 
 class PolicyMDPAgent(Agent):
     def __init__(self):
-        print("[PolicyMDPAgent]")
-
         # Maps:
         self.map = None                               # Grid: stores symbols of each cell, for visualization
         self.rewardMap = None                         # Grid: stores the reward of each state, for visualization
@@ -26,7 +25,6 @@ class PolicyMDPAgent(Agent):
         self.utils = {}                               # a dict which stores utility of each cell
         self.possibleActions = {'north', 'south', 'east', 'west'}
         self.policy = {}
-        
 
         # Hyper-parameters:
         self.width = 0                                # width of the game map
@@ -49,7 +47,9 @@ class PolicyMDPAgent(Agent):
     # Gets run after an MDPAgent object is created and once there is
     # game state to access.
     def registerInitialState(self, state):
-        print("Running registerInitialState for MDPAgent!")
+        print("Running Policy Iteration MDPAgent!")
+        self.startState = state.getPacmanPosition()
+        startTime = time.time()
         # Create a set of all states of the game                         -> self.grid
         self.makeGrid(state)
         # Initialize rewards values based on the size of the map         -> self.xxx_reward and hyper-parameters
@@ -64,22 +64,39 @@ class PolicyMDPAgent(Agent):
         self.makeMap(state)
         # Create a basic policy of always go west
         self.initializePolicy(state)  
+        self.policyIteration(state)
+
+        # Metrics
+        # print(self.startState)
+        # print(self.policy)
+        print('Time to find optimal path: %.5f seconds' % (time.time() - startTime))
+        print('Nodes Visited: %.0f' % (len(self.mappedStates)))
+
+    # def getCostOfActions(self, actions):
+    #     """
+    #     Returns the cost of a particular sequence of actions. If those actions
+    #     include an illegal move, return 999999.
+    #     """
+    #     if actions == None: return 999999
+    #     x,y= self.getStartState()
+    #     cost = 0
+    #     for action in actions:
+    #         # Check figure out the next state and see whether its' legal
+    #         dx, dy = Actions.directionToVector(action)
+    #         x, y = int(x + dx), int(y + dy)
+    #         if self.walls[x][y]: return 999999
+    #         cost += self.costFn((x,y))
+    #     return cost
+    
+    def getStartState(self):
+        return self.startState
 
     # This is what gets run in between multiple games
     def final(self, state):
         print("Looks like the game just ended!")
     
     def getAction(self, state):
-        # 1. Update rewards for each cell at the beginning of every round
-        print("Update Rewards")
-        self.updateReward(state)
-        # 3. policy iteration
-        print("Finding best policy")
-        self.policyIteration(state) 
-        # 4. Choose a policy that maximize the expected utility
-        print("Get Policy")
         policy = self.getPolicy(state)
-        # print(policy)
         legal = api.legalActions(state)
         if Directions.STOP in legal:
             legal.remove(Directions.STOP)

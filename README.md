@@ -34,15 +34,21 @@ python pacman.py -l mediumMaze -p SearchAgent -a fn=aStarSearch
 python pacman.py -l mediumMaze -p SearchAgent -a fn=aStarSearch,heuristic=manhattanHeuristic
 python pacman.py -l mediumMaze -p SearchAgent -a fn=aStarSearch,heuristic=euclideanHeuristic
 
-python pacman.py -l bigMaze -p SearchAgent -a fn=breadthFirstSearch
-python pacman.py -l bigMaze -p SearchAgent -a fn=depthFirstSearch
-python pacman.py -l bigMaze -p SearchAgent -a fn=aStarSearch
-python pacman.py -l bigMaze -p SearchAgent -a fn=aStarSearch,heuristic=manhattanHeuristic
-python pacman.py -l bigMaze -p SearchAgent -a fn=aStarSearch,heuristic=euclideanHeuristic
+python pacman.py -l smallMaze -p SearchAgent -a fn=breadthFirstSearch
+python pacman.py -l smallMaze -p SearchAgent -a fn=depthFirstSearch
+python pacman.py -l smallMaze -p SearchAgent -a fn=aStarSearch
+python pacman.py -l smallMaze -p SearchAgent -a fn=aStarSearch,heuristic=manhattanHeuristic
+python pacman.py -l smallMaze -p SearchAgent -a fn=aStarSearch,heuristic=euclideanHeuristic
 ```
 ### Markov Decision Process Algorithms
 ```
-python pacman.py -l tinyMaze -p MDPAgent
-python pacman.py -l mediumMaze -p MDPAgent
-python pacman.py -l bigMaze -p MDPAgent
+python pacman.py -l tinyMaze -p ValueMDPAgent
+python pacman.py -l smallMaze -p ValueMDPAgent
+python pacman.py -l mediumMaze -p ValueMDPAgent
+```
+
+```
+python pacman.py -l tinyMaze -p PolicyMDPAgent
+python pacman.py -l smallMaze -p PolicyMDPAgent
+python pacman.py -l mediumMaze -p PolicyMDPAgent
 ```
