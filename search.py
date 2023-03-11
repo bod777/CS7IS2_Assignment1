@@ -54,46 +54,7 @@ class SearchProblem:
         """
         util.raiseNotDefined()
 
-def breadthFirstSearch(problem):
-    """
-    Search the deepest nodes in the search tree first.
-    Return a list of actions that reaches the goal.
-    """
-    visited_node = []
-    actions = []
-    queue = util.Queue()
-
-    # Gets the starting state of the problem.
-    start_node = problem.getStartState() 
-    # If the starting state is a goal state, return an empty list because no actions need to be taken.
-    if problem.isGoalState(start_node):
-        return []
-    
-    # Insert start node into the queue
-    queue.push((start_node, actions)) 
-
-    # While quere is not empty
-    while queue: 
-        # Pop the next node and its corresponding list of actions from the queue.
-        node, action = queue.pop() 
-        # Process all the neighbors of front node
-        if node not in visited_node:
-            visited_node.append(node)
-            # If the node is a goal state, return the list of actions taken to reach the node.
-            if problem.isGoalState(node):
-                return action
-            for successor, direction, cost in problem.getSuccessors(node):
-                new_action = action + [direction] 
-                queue.push((successor, new_action))
-    return []
-
-
 def depthFirstSearch(problem):
-    """
-    Search the shallowest nodes in the search tree first.
-    Return a list of actions that reaches the goal.
-    The key difference between DFS and BFS is that DFS uses a stack to keep track of the nodes to visit, while BFS uses a queue.
-    """
     visited_node = []
     actions = []
     stack = util.Stack()
@@ -122,6 +83,35 @@ def depthFirstSearch(problem):
                 stack.push((successor, new_action))
     return []
 
+def breadthFirstSearch(problem):
+    visited_node = []
+    actions = []
+    queue = util.Queue()
+
+    # Gets the starting state of the problem.
+    start_node = problem.getStartState() 
+    # If the starting state is a goal state, return an empty list because no actions need to be taken.
+    if problem.isGoalState(start_node):
+        return []
+    
+    # Insert start node into the queue
+    queue.push((start_node, actions)) 
+
+    # While quere is not empty
+    while queue: 
+        # Pop the next node and its corresponding list of actions from the queue.
+        node, action = queue.pop() 
+        # Process all the neighbors of front node
+        if node not in visited_node:
+            visited_node.append(node)
+            # If the node is a goal state, return the list of actions taken to reach the node.
+            if problem.isGoalState(node):
+                return action
+            for successor, direction, cost in problem.getSuccessors(node):
+                new_action = action + [direction] 
+                queue.push((successor, new_action))
+    return []
+
 def nullHeuristic(state, problem=None):
     """
     A heuristic function estimates the cost from the current state to the nearest
@@ -130,7 +120,6 @@ def nullHeuristic(state, problem=None):
     return 0
 
 def aStarSearch(problem, heuristic=nullHeuristic):
-    """Search the node that has the lowest combined cost and heuristic first."""
     visited_node = []
     # Gets the starting state of the problem.
     start_node = problem.getStartState() 

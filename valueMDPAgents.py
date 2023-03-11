@@ -87,8 +87,7 @@ class ValueMDPAgent(Agent):
         # 6. Create Grid instances for printing and visualization           -> self.map/self.rewardMap/self.utilityMap
         self.makeMap(state)
         self.valueIteration(state)
-        print('Time to find optimal path: %.5f seconds' % (time.time() - startTime))
-        print('Nodes Visited: %.0f' % (len(self.mappedStates)))
+        self.timeTaken = time.time() - startTime
 
     # This is what gets run in between multiple games
     def final(self, state):
