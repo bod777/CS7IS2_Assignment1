@@ -38,6 +38,7 @@ from game_modules.game import Directions
 from game_modules.game import Actions
 from game_modules.util import nearestPoint
 from game_modules.util import manhattanDistance
+import display.textDisplay as textDisplay
 import game_modules.util as util
 import display.layout as layout
 import sys, types, time, random, os
@@ -551,10 +552,8 @@ def readCommand( argv ):
 
     # Choose a display format
     if options.quietGraphics:
-        import textDisplay
         args['display'] = textDisplay.NullGraphics()
     elif options.textGraphics:
-        import textDisplay
         textDisplay.SLEEP_TIME = options.frameTime
         args['display'] = textDisplay.PacmanGraphics()
     else:
@@ -630,7 +629,7 @@ def runGames( layout, pacman, ghosts, display, numGames, record, numTraining = 0
         beQuiet = i < numTraining
         if beQuiet:
                 # Suppress output and graphics
-            import textDisplay
+            import display.textDisplay as textDisplay
             gameDisplay = textDisplay.NullGraphics()
             rules.quiet = True
         else:
@@ -652,10 +651,10 @@ def runGames( layout, pacman, ghosts, display, numGames, record, numTraining = 0
         scores = [game.state.getScore() for game in games]
         wins = [game.state.isWin() for game in games]
         winRate = wins.count(True)/ float(len(wins))
-        print('Average Score:', sum(scores) / float(len(scores)))
-        print('Scores:       ', ', '.join([str(score) for score in scores]))
-        print('Win Rate:      %d/%d (%.2f)' % (wins.count(True), len(wins), winRate))
-        print('Record:       ', ', '.join([ ['Loss', 'Win'][int(w)] for w in wins]))
+        # print('Average Score:', sum(scores) / float(len(scores)))
+        # print('Scores:       ', ', '.join([str(score) for score in scores]))
+        # print('Win Rate:      %d/%d (%.2f)' % (wins.count(True), len(wins), winRate))
+        # print('Record:       ', ', '.join([ ['Loss', 'Win'][int(w)] for w in wins]))
 
     return games
 

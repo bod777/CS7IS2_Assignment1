@@ -1,4 +1,4 @@
-# mapAgent.py
+# valueMDPAgents.py
 # ---------
 # Licensing Information:  You are free to use or extend these projects for
 # educational purposes provided that (1) you do not distribute or publish
@@ -48,6 +48,8 @@ class ValueMDPAgent(Agent):
         self.mappedStates = {}                        # a dict mapping all possible states to 4 directions
         self.reward = {}                              # a dict which stores reward of each cell
         self.utils = {}                               # a dict which stores utility of each cell
+        self.actions = []
+        self.cost = 0
 
         # Hyper-parameters:
         self.width = 0                                # width of the game map
@@ -90,11 +92,15 @@ class ValueMDPAgent(Agent):
 
     # This is what gets run in between multiple games
     def final(self, state):
-        print("Looks like the game just ended!")
+        print("Maze Solved.")
+        print('Cost: %.0f' % (self.cost))
+        print('Time to find optimal path: %.5f seconds' % self.timeTaken)
+        print('Nodes Visited: %.0f' % (len(self.mappedStates)))
 
     def getAction(self, state):
         policy = self.choosePolicy(state)
         legal = api.legalActions(state)
+        self.cost += 1
         if Directions.STOP in legal:
             legal.remove(Directions.STOP)
         return api.makeMove(policy, legal)
@@ -184,34 +190,28 @@ class ValueMDPAgent(Agent):
 
         # return direction: 0-north  1-south  2-east  3-west
         if maxIndex == 0:
+            self.actions.append(Directions.NORTH)
             return Directions.NORTH
         if maxIndex == 1:
+            self.actions.append(Directions.SOUTH)
             return Directions.SOUTH
         if maxIndex == 2:
+            self.actions.append(Directions.EAST)
             return Directions.EAST
         if maxIndex == 3:
+            self.actions.append(Directions.WEST)
             return Directions.WEST
 
     def initializeReward(self, state):
         """ Initialize reward for every state. Reward are fine tuned according to the size of the map """
 
-        if self.width + self.height < 20:
-            # smallGrid:
-            self.food_reward = 11
-            self.ghost_reward = -25
-            self.scaringGhost_reward = 8
-            self.capsule_reward = 9
-            self.empty_reward = -1
-            self.breadth = 17
-        else:
-            # mediumClassic
-            self.food_reward = 5
-            self.ghost_reward = -25
-            self.scaringGhost_reward = 4
-            self.scaringGhost_reward_factor = 3
-            self.capsule_reward = 8
-            self.empty_reward = -2
-            self.breadth = 5
+        self.food_reward = 5
+        self.ghost_reward = -25
+        self.scaringGhost_reward = 4
+        self.scaringGhost_reward_factor = 3
+        self.capsule_reward = 8
+        self.empty_reward = -2
+        self.breadth = 5
 
     def updateReward(self, state):
         """

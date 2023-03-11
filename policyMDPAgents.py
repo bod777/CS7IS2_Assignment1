@@ -1,9 +1,5 @@
-# mapAgent.py
+# policyMDPAgent.py
 # ---------
-# Licensing Information:  You are free to use or extend these projects for
-# educational purposes provided that (1) you do not distribute or publish
-# solutions, (2) you retain this notice, and (3) you provide clear
-# attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
 
 from pacman import Directions
 from game_modules.game import Agent
@@ -25,6 +21,7 @@ class PolicyMDPAgent(Agent):
         self.utils = {}                               # a dict which stores utility of each cell
         self.possibleActions = {'north', 'south', 'east', 'west'}
         self.policy = {}
+        self.cost = 0
 
         # Hyper-parameters:
         self.width = 0                                # width of the game map
@@ -65,12 +62,10 @@ class PolicyMDPAgent(Agent):
         # Create a basic policy of always go west
         self.initializePolicy(state)  
         self.policyIteration(state)
-
+        self.timeTaken = (time.time() - startTime)
         # Metrics
         # print(self.startState)
         # print(self.policy)
-        print('Time to find optimal path: %.5f seconds' % (time.time() - startTime))
-        print('Nodes Visited: %.0f' % (len(self.mappedStates)))
 
     # def getCostOfActions(self, actions):
     #     """
@@ -93,11 +88,15 @@ class PolicyMDPAgent(Agent):
 
     # This is what gets run in between multiple games
     def final(self, state):
-        print("Looks like the game just ended!")
+        print("Maze Solved.")
+        print('Cost: %.0f' % (self.cost))
+        print('Time to find optimal path: %.5f seconds' % self.timeTaken)
+        print('Nodes Visited: %.0f' % (len(self.mappedStates)))
     
     def getAction(self, state):
         policy = self.getPolicy(state)
         legal = api.legalActions(state)
+        self.cost += 1
         if Directions.STOP in legal:
             legal.remove(Directions.STOP)
         return api.makeMove(policy, legal)
@@ -230,25 +229,15 @@ class PolicyMDPAgent(Agent):
         self.policy = policy
 
     def initializeReward(self, state):
-        """ Initialize reward for every state. Reward are fine tuned according to the size of the map """
+        """ Initialize reward for every state """
 
-        if self.width + self.height < 20:
-            # smallGrid:
-            self.food_reward = 11
-            self.ghost_reward = -25
-            self.scaringGhost_reward = 8
-            self.capsule_reward = 9
-            self.empty_reward = -1
-            self.breadth = 17
-        else:
-            # mediumClassic
-            self.food_reward = 5
-            self.ghost_reward = -25
-            self.scaringGhost_reward = 4
-            self.scaringGhost_reward_factor = 3
-            self.capsule_reward = 8
-            self.empty_reward = -2
-            self.breadth = 5
+        self.food_reward = 5
+        self.ghost_reward = -25
+        self.scaringGhost_reward = 4
+        self.scaringGhost_reward_factor = 3
+        self.capsule_reward = 8
+        self.empty_reward = -2
+        self.breadth = 5
 
     def checkLastFood(self, state):
         """ check if there is only one piece of food """

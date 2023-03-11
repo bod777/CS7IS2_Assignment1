@@ -68,14 +68,12 @@ class SearchAgent(Agent):
     """
 
     def __init__(self, fn='depthFirstSearch', prob='PositionSearchProblem', heuristic='nullHeuristic'):
-        # Warning: some advanced Python magic is employed below to find the right functions and problems
-
         # Get the search function from the name and heuristic
         if fn not in dir(search):
             raise AttributeError(fn + ' is not a search function in search.py.')
         func = getattr(search, fn)
         if 'heuristic' not in func.__code__.co_varnames:
-            print('[SearchAgent] using function ' + fn)
+            print('Running SearchAgent using function ' + fn)
             self.searchFunction = func
         else:
             if heuristic in globals().keys():
@@ -84,7 +82,7 @@ class SearchAgent(Agent):
                 heur = getattr(search, heuristic)
             else:
                 raise AttributeError(heuristic + ' is not a function in searchAgents.py or search.py.')
-            print('[SearchAgent] using function %s and heuristic %s' % (fn, heuristic))
+            print('Running SearchAgent using function %s and heuristic %s' % (fn, heuristic))
             # Note: this bit of Python trickery combines the search algorithm and the heuristic
             self.searchFunction = lambda x: func(x, heuristic=heur)
 
@@ -92,7 +90,6 @@ class SearchAgent(Agent):
         if prob not in globals().keys() or not prob.endswith('Problem'):
             raise AttributeError(prob + ' is not a search problem type in SearchAgents.py.')
         self.searchType = globals()[prob]
-        print('[SearchAgent] using problem type ' + prob)
 
     def registerInitialState(self, state):
         """
@@ -103,14 +100,14 @@ class SearchAgent(Agent):
 
         state: a GameState object (pacman.py)
         """
-        if self.searchFunction == None: raise Exception("No search function provided for SearchAgent")
+        self.cost = 0
         startTime = time.time()
+        if self.searchFunction == None: raise Exception("No search function provided for SearchAgent")
         problem = self.searchType(state) # Makes a new search problem
         self.actions  = self.searchFunction(problem) # Find a path
-        totalCost = problem.getCostOfActions(self.actions)
-        # print(self.actions)
-        print('Time to find optimal path: %.5f seconds' % (time.time() - startTime))
-        print('Nodes Visited: %.0f' % problem._expanded)
+        # totalCost = problem.getCostOfActions(self.actions)
+        self.visited = problem._expanded
+        self.timeTaken = (time.time() - startTime)
 
     def getAction(self, state):
         """
@@ -123,10 +120,18 @@ class SearchAgent(Agent):
         if 'actionIndex' not in dir(self): self.actionIndex = 0
         i = self.actionIndex
         self.actionIndex += 1
+        self.cost += 1
         if i < len(self.actions):
             return self.actions[i]
         else:
             return Directions.STOP
+    
+    # This is what gets run in between multiple games
+    def final(self, state):
+        print("Maze Solved.")
+        print('Cost: %.0f' % (self.cost))
+        print('Time to find optimal path: %.5f seconds' % self.timeTaken)
+        print('Nodes Visited: %.0f' % self.visited)
 
 class PositionSearchProblem(search.SearchProblem):
     """
@@ -202,7 +207,6 @@ class PositionSearchProblem(search.SearchProblem):
         if state not in self._visited:
             self._visited[state] = True
             self._visitedlist.append(state)
-        print(successors)
         return successors
 
     def getCostOfActions(self, actions):
