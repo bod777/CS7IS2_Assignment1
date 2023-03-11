@@ -52,64 +52,6 @@ def legalActions(state):
     
     return state.getLegalPacmanActions()
 
-def ghosts(state):
-    # Returns a list of (x, y) pairs of ghost positions.
-    #
-    # This version just returns the ghost positions from the state data
-    # In later versions this will be more restricted, and include some
-    # uncertainty.
-            
-    return state.getGhostPositions()
-
-def ghostStates(state):
-    # Returns the position of the ghsosts, plus an indication of
-    # whether or not they are scared/edible.
-    #
-    # The information is returned as a list of elements of the form:
-    #
-    # ((x, y), state)
-    #
-    # where "state" is 1 if the relevant ghost is scared/edible, and 0
-    # otherwise.
-    
-    ghostStateInfo = state.getGhostStates()
-    ghostStates = []
-    for s in ghostStateInfo:
-        if s.scaredTimer > 0:
-            ghostStates.append((s.getPosition(), 1))
-        else:
-            ghostStates.append((s.getPosition(), 0))
-    return ghostStates
-
-def ghostStatesWithTimes(state):
-    # Just as ghostStates(), but when the ghost is in scared/edible
-    # mode, "state" is a time value (how much longer the ghost will
-    # remain scared/edible) rather than 1.
-    
-    ghostStateInfo = state.getGhostStates()
-    ghostStates = []
-    for s in ghostStateInfo:
-        ghostStates.append((s.getPosition(), s.scaredTimer))
-    return ghostStates
-
-def capsules(state):
-    # Returns a list of (x, y) pairs of capsule positions.
-    #
-    # This version returns the capsule positions if they are within
-    # the distance limit.
-    #
-    # Capsules are visible if:
-    #
-    # 1) Pacman is moving and the capsule is in front of Pacman and
-    # within the visibilityLimit, or to the side of Pacman and within
-    # the sideLimit.
-    #
-    # 2) Pacman is not moving, and the capsule is within the visibilityLimit.
-    #
-    # In both cases, walls block the view.
-    
-    return state.getCapsules()
-
 def food(state):
     # Returns a list of (x, y) pairs of food positions
     #
@@ -376,12 +318,6 @@ def visible(objects, state):
                     visibleObjects.append(objects[i])
             visibleObjects = distanceLimited(visibleObjects, state, visibilityLimit)
         return visibleObjects
-
-def audible(ghosts, state):
-    # A ghost is audible if it is any direction and less than
-    # "hearingLimit" away.
-
-    return distanceLimited(ghosts, state, hearingLimit)  
     
 def union(a, b):
     # return the union of two lists 
