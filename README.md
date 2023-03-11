@@ -3,12 +3,14 @@ This is the first assignment for the module Artificial Intelligence in Trinity C
 
 The base code for the pacman maze was adapted from Pacman AI project from UC Berkeley (http://ai.berkeley.edu).
 
+Link to video demo: https://drive.google.com/file/d/1Mhi2nz4pdH8pMHfUabio3UfKgevEiEys/view?usp=sharing
+
 ## Algorithms Currently Working
 - [x] depthFirstSearch
 - [x] breadthFirstSearch
 - [x] aStarSearch
 - [x] MDP value iteration
-- [x] MDP policy iteration
+- [x] MDP policy iterationg
 
 ## Commands
 To run the basic pacman game:
